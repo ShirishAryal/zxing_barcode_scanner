@@ -19,6 +19,12 @@ class _ZxingBarcodeScannerState extends State<ZxingBarcodeScanner> implements Zx
   final _creationParams = <String, dynamic>{};
 
   @override
+  void initState() {
+    ZxingBarcodeScannerFlutterApi.setUp(this);
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return switch (defaultTargetPlatform) {
       TargetPlatform.android => AndroidView(
