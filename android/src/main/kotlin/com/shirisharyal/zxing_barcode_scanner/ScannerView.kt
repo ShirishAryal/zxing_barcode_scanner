@@ -9,12 +9,14 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.os.Build
 import android.util.Log
 import android.util.Size
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -172,24 +174,28 @@ class ScannerView(
 
     }
 
+
     private fun setupImageAnalysis() {
         imageAnalysisBuilder = ImageAnalysis.Builder()
             .setResolutionSelector(resolutionSelector.build())
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .setImageQueueDepth(1)
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_BLOCK_PRODUCER)
+            .setImageQueueDepth(4)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
             .build()
+
     }
 
     private fun setupBarcodeReader() {
       val options = BarcodeReader.Options().apply {
             formats = setOf(BarcodeReader.Format.QR_CODE)
-            tryRotate = true
             tryInvert = true
             tryHarder = true
-            tryDownscale = true
-            maxNumberOfSymbols = 5
+            tryDownscale = false
+            maxNumberOfSymbols = 1
             binarizer = BarcodeReader.Binarizer.LOCAL_AVERAGE
+            // Need more testing either enabling [tryRotate] flag
+            // or enabling rotation on imageAnalysisBuilder is more effective
+            tryRotate = false
         }
       barcodeReader = BarcodeReader(options)
     }
