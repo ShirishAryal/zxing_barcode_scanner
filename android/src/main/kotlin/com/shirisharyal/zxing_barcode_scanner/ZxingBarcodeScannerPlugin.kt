@@ -1,35 +1,60 @@
 package com.shirisharyal.zxing_barcode_scanner
 
-import androidx.annotation.NonNull
-
+import android.app.Activity
+import android.content.Context
 import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.plugin.common.StandardMessageCodec
+import io.flutter.plugin.platform.PlatformView
+import io.flutter.plugin.platform.PlatformViewFactory
 
-/** ZxingBarcodeScannerPlugin */
-class ZxingBarcodeScannerPlugin: FlutterPlugin, MethodCallHandler {
-  /// The MethodChannel that will the communication between Flutter and native Android
-  ///
-  /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-  /// when the Flutter Engine is detached from the Activity
-  private lateinit var channel : MethodChannel
+class ZxingBarcodeScannerPlugin: FlutterPlugin, ActivityAware{
+  private var  flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null
 
-  override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-    channel = MethodChannel(flutterPluginBinding.binaryMessenger, "zxing_barcode_scanner")
-    channel.setMethodCallHandler(this)
-  }
-
-  override fun onMethodCall(call: MethodCall, result: Result) {
-    if (call.method == "getPlatformVersion") {
-      result.success("Android ${android.os.Build.VERSION.RELEASE}")
-    } else {
-      result.notImplemented()
-    }
+  override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+    flutterPluginBinding = binding
   }
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-    channel.setMethodCallHandler(null)
+    flutterPluginBinding = null
+  }
+
+  override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+    flutterPluginBinding!!.platformViewRegistry.registerViewFactory("zxing_barcode_scanner", ZxingBarcodeScannerViewFactory(
+      binding.activity,
+      binding,
+      flutterPluginBinding = flutterPluginBinding!!,
+    ))
+  }
+
+  override fun onDetachedFromActivityForConfigChanges() {
+    flutterPluginBinding = null
+  }
+
+  override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+    flutterPluginBinding!!.platformViewRegistry.registerViewFactory("zxing_barcode_scanner", ZxingBarcodeScannerViewFactory(
+      binding.activity,
+      binding,
+      flutterPluginBinding = flutterPluginBinding!!,
+    ))
+  }
+
+  override fun onDetachedFromActivity() {
+    flutterPluginBinding = null
+  }
+}
+
+class ZxingBarcodeScannerViewFactory(
+  private val activity: Activity,
+  private val activityPluginBinding: ActivityPluginBinding,
+  private val flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
+): PlatformViewFactory(StandardMessageCodec.INSTANCE){
+  override fun create(context: Context, viewId: Int, args: Any?): PlatformView {
+    return ScannerView(
+      context =context,
+      activity = activity,
+      activityPluginBinding = activityPluginBinding
+    )
   }
 }
