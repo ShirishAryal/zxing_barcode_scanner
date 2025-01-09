@@ -6,12 +6,16 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.util.Log
 import android.util.Size
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
@@ -24,6 +28,9 @@ import androidx.lifecycle.LifecycleOwner
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.platform.PlatformView
+import zxingcpp.BarcodeReader
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class ScannerView(
     private val context: Context,
@@ -33,14 +40,27 @@ class ScannerView(
 
     private var camera: androidx.camera.core.Camera? = null
     private var cameraProvider: ProcessCameraProvider? = null
+    private var imageAnalysisBuilder: ImageAnalysis? = null
+    private var  barcodeReader: BarcodeReader? = null
+    private var cameraExecutor: ExecutorService? = null
+
 
     companion object {
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
         private val defaultBoundSize = Size(1280, 720)
+        private const val TAG = "ZxingBarcodeScanner"
+        private val resolutionSelector =  ResolutionSelector.Builder().setResolutionStrategy(
+            ResolutionStrategy(
+                defaultBoundSize,
+                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER
+            )
+        ) .setAspectRatioStrategy(
+            AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY
+        )
     }
 
-    private fun allPermissionsGranted() = com.shirisharyal.zxing_barcode_scanner.ScannerView.Companion.REQUIRED_PERMISSIONS.all {
+    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
     }
 
@@ -67,7 +87,6 @@ class ScannerView(
 
     init {
         activityPluginBinding.addRequestPermissionsResultListener(this)
-
         container.setBackgroundColor(Color.WHITE)
         if(allPermissionsGranted()){
             container.addView(preview)
@@ -76,8 +95,8 @@ class ScannerView(
         else {
             ActivityCompat.requestPermissions(
                 activity,
-                com.shirisharyal.zxing_barcode_scanner.ScannerView.Companion.REQUIRED_PERMISSIONS,
-                com.shirisharyal.zxing_barcode_scanner.ScannerView.Companion.REQUEST_CODE_PERMISSIONS
+                REQUIRED_PERMISSIONS,
+                REQUEST_CODE_PERMISSIONS
             )
         }
     }
@@ -117,22 +136,19 @@ class ScannerView(
 
                 val previewUseCase = Preview.Builder()
                     .setResolutionSelector(
-                        ResolutionSelector.Builder()
-                            .setResolutionStrategy(
-                                ResolutionStrategy(
-                                    com.shirisharyal.zxing_barcode_scanner.ScannerView.Companion.defaultBoundSize,
-                                    ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER
-                                )
-                            )
-                            .setAspectRatioStrategy(
-                                AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY
-                            )
-                            .build()
+                        resolutionSelector.build()
                     )
                     .build()
                     .also {
                         it.surfaceProvider = preview.surfaceProvider
                     }
+
+                setupBarcodeReader()
+                setupImageAnalysis()
+                cameraExecutor = Executors.newSingleThreadExecutor()
+                imageAnalysisBuilder?.setAnalyzer(cameraExecutor!!) {
+                    scanBarcodes(it)
+                }
 
                 try {
                     cameraProvider?.apply {
@@ -142,7 +158,8 @@ class ScannerView(
                             CameraSelector.Builder()
                                 .requireLensFacing(CameraSelector.LENS_FACING_BACK)
                                 .build(),
-                            previewUseCase
+                            previewUseCase,
+                            imageAnalysisBuilder
                         )
                     }
                 } catch (e: Exception) {
@@ -150,10 +167,45 @@ class ScannerView(
                 }
             }, ContextCompat.getMainExecutor(context))
         }
+
+    }
+
+    private fun setupImageAnalysis() {
+        imageAnalysisBuilder = ImageAnalysis.Builder()
+            .setResolutionSelector(resolutionSelector.build())
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .setImageQueueDepth(1)
+            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+            .build()
+    }
+
+    private fun setupBarcodeReader() {
+      val options = BarcodeReader.Options().apply {
+            formats = setOf(BarcodeReader.Format.QR_CODE)
+            tryRotate = true
+            tryInvert = true
+            tryHarder = true
+            tryDownscale = true
+            maxNumberOfSymbols = 1
+            binarizer = BarcodeReader.Binarizer.LOCAL_AVERAGE
+        }
+      barcodeReader = BarcodeReader(options)
+    }
+
+    private fun scanBarcodes(imageProxy: ImageProxy) {
+        val startTime = System.currentTimeMillis()
+        val results = barcodeReader?.read(imageProxy)
+        imageProxy.close()
+        if (!results.isNullOrEmpty()) {
+            val duration = System.currentTimeMillis() - startTime
+            Log.d(TAG, "Results: $results, took ${duration}ms to scan")
+        }
     }
 
     override fun dispose() {
         activityPluginBinding.removeRequestPermissionsResultListener(this)
+        cameraExecutor?.shutdown()
+        imageAnalysisBuilder?.clearAnalyzer()
         cameraProvider?.unbindAll()
         cameraProvider = null
         camera = null
