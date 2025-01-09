@@ -11,6 +11,7 @@ import io.flutter.plugin.platform.PlatformViewFactory
 
 class ZxingBarcodeScannerPlugin: FlutterPlugin, ActivityAware{
   private var  flutterPluginBinding: FlutterPlugin.FlutterPluginBinding? = null
+  private val viewType = "com.shirisharyal.zxing_barcode_scanner"
 
   override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     flutterPluginBinding = binding
@@ -21,7 +22,7 @@ class ZxingBarcodeScannerPlugin: FlutterPlugin, ActivityAware{
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-    flutterPluginBinding!!.platformViewRegistry.registerViewFactory("zxing_barcode_scanner", ZxingBarcodeScannerViewFactory(
+    flutterPluginBinding!!.platformViewRegistry.registerViewFactory(viewType, ZxingBarcodeScannerViewFactory(
       binding.activity,
       binding,
       flutterPluginBinding = flutterPluginBinding!!,
@@ -33,7 +34,7 @@ class ZxingBarcodeScannerPlugin: FlutterPlugin, ActivityAware{
   }
 
   override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-    flutterPluginBinding!!.platformViewRegistry.registerViewFactory("zxing_barcode_scanner", ZxingBarcodeScannerViewFactory(
+    flutterPluginBinding!!.platformViewRegistry.registerViewFactory(viewType, ZxingBarcodeScannerViewFactory(
       binding.activity,
       binding,
       flutterPluginBinding = flutterPluginBinding!!,

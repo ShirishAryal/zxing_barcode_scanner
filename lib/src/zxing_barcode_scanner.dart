@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zxing_barcode_scanner/generated/zxing_barcode_scanner_api.g.dart';
 
-const _viewType = 'zxing_barcode_scanner';
+const _viewType = 'com.shirisharyal.zxing_barcode_scanner';
 
 class ZxingBarcodeScanner extends StatefulWidget {
   const ZxingBarcodeScanner({super.key, required this.onScan});
