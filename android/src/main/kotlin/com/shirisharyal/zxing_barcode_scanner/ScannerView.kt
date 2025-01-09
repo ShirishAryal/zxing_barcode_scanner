@@ -134,9 +134,7 @@ class ScannerView(
                 cameraProvider?.unbindAll()
 
                 val previewUseCase = Preview.Builder()
-                    .setResolutionSelector(
-                        resolutionSelector.build()
-                    )
+                    .setResolutionSelector(resolutionSelector.build())
                     .build()
                     .also {
                         it.surfaceProvider = preview.surfaceProvider
