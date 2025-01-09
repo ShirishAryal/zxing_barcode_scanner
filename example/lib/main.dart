@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zxing_barcode_scanner_example/scanner_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,7 +27,15 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Text('Implement Scanner here'),
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ScannerPage()),
+            );
+          },
+          child: Text('Camera View'),
+        ),
       ),
     );
   }
