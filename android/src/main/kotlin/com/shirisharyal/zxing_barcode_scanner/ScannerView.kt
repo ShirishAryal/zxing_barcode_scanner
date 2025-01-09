@@ -1,5 +1,8 @@
 package com.shirisharyal.zxing_barcode_scanner
 
+import BarcodeResult
+import ZxingBarcodeScannerController
+import ZxingBarcodeScannerFlutterApi
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -24,6 +27,7 @@ import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.platform.PlatformView
@@ -35,14 +39,16 @@ class ScannerView(
     private val context: Context,
     private val activity: Activity,
     private val activityPluginBinding: ActivityPluginBinding,
-) : PlatformView, PluginRegistry.RequestPermissionsResultListener {
+    private val flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
+) : PlatformView, PluginRegistry.RequestPermissionsResultListener, ZxingBarcodeScannerController {
 
     private var camera: androidx.camera.core.Camera? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalysisBuilder: ImageAnalysis? = null
     private var  barcodeReader: BarcodeReader? = null
     private var cameraExecutor: ExecutorService? = null
-
+    private var isFlashOn = false
+    private var zxingBarcodeScannerFlutterApi: ZxingBarcodeScannerFlutterApi = ZxingBarcodeScannerFlutterApi(flutterPluginBinding.binaryMessenger)
 
     companion object {
         private const val REQUEST_CODE_PERMISSIONS = 10
@@ -85,6 +91,7 @@ class ScannerView(
     override fun getView(): View = container
 
     init {
+        ZxingBarcodeScannerController.setUp(flutterPluginBinding.binaryMessenger, this)
         activityPluginBinding.addRequestPermissionsResultListener(this)
         container.setBackgroundColor(Color.WHITE)
         if(allPermissionsGranted()){
@@ -126,7 +133,6 @@ class ScannerView(
         return false
     }
 
-
     private fun startCamera() {
         ProcessCameraProvider.getInstance(context).apply {
             addListener({
@@ -146,7 +152,6 @@ class ScannerView(
                 imageAnalysisBuilder?.setAnalyzer(cameraExecutor!!) {
                     scanBarcodes(it)
                 }
-
                 try {
                     cameraProvider?.apply {
                         unbindAll()
@@ -183,20 +188,65 @@ class ScannerView(
             tryInvert = true
             tryHarder = true
             tryDownscale = true
-            maxNumberOfSymbols = 1
+            maxNumberOfSymbols = 5
             binarizer = BarcodeReader.Binarizer.LOCAL_AVERAGE
         }
       barcodeReader = BarcodeReader(options)
     }
 
     private fun scanBarcodes(imageProxy: ImageProxy) {
-        val startTime = System.currentTimeMillis()
         val results = barcodeReader?.read(imageProxy)
         imageProxy.close()
-        if (!results.isNullOrEmpty()) {
-            val duration = System.currentTimeMillis() - startTime
-            Log.d(TAG, "Results: $results, took ${duration}ms to scan")
+        if(results.isNullOrEmpty()) return
+        val barcodeResults : MutableList<BarcodeResult> = emptyList<BarcodeResult>().toMutableList()
+        for (result in results) {
+            if(result.text.isNullOrEmpty()) return
+            Log.d("QR_RESULT", "Barcode: ${result.text}")
+            barcodeResults.add(BarcodeResult(result.text!!, format = result.format.name))
         }
+        if(barcodeResults.isEmpty()) return
+        activity.runOnUiThread {
+            zxingBarcodeScannerFlutterApi.onScanSuccess(barcodeResults){
+                it.onSuccess {
+                    Log.d(TAG, "Successfully sent codes to Flutter")
+                }.onFailure { error ->
+                    Log.e(TAG, "Error sending codes to Flutter", error)
+                }
+            }
+        }
+    }
+
+    override fun toggleFlash(): Boolean {
+        val hasFlash = camera?.cameraInfo?.hasFlashUnit() ?: false
+        if (!hasFlash) return  false
+       camera?.cameraControl?.enableTorch(!isFlashOn)
+        isFlashOn = !isFlashOn
+        return isFlashOn
+    }
+
+    override fun start() {
+        if(cameraProvider == null) return
+        cameraProvider!!.unbindAll()
+        val previewUseCase = Preview.Builder()
+            .setResolutionSelector(resolutionSelector.build())
+            .build()
+            .also {
+                it.surfaceProvider = preview.surfaceProvider
+            }
+        camera = cameraProvider!!.bindToLifecycle(
+            activity as LifecycleOwner,
+            CameraSelector.Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                .build(),
+            previewUseCase,
+            imageAnalysisBuilder
+        )
+    }
+
+    override fun stop() {
+        if (cameraProvider == null) return
+        cameraProvider?.unbindAll()
+        camera = null
     }
 
     override fun dispose() {
