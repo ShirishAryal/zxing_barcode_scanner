@@ -195,19 +195,24 @@ class ScannerView(
     }
 
     private fun scanBarcodes(imageProxy: ImageProxy) {
+        val start = System.currentTimeMillis()
         val results = barcodeReader?.read(imageProxy)
         imageProxy.close()
         if(results.isNullOrEmpty()) return
+        val end = System.currentTimeMillis()
+        Log.d(TAG, "Time taken to scan: ${end - start}ms")
         val barcodeResults : MutableList<BarcodeResult> = emptyList<BarcodeResult>().toMutableList()
         for (result in results) {
             if(result.text.isNullOrEmpty()) return
-            Log.d("QR_RESULT", "Barcode: ${result.text}")
+            Log.d(TAG, "Barcode: ${result.text}")
             barcodeResults.add(BarcodeResult(result.text!!, format = result.format.name))
         }
         if(barcodeResults.isEmpty()) return
         activity.runOnUiThread {
             zxingBarcodeScannerFlutterApi.onScanSuccess(barcodeResults){
                 it.onSuccess {
+                    val overAllTime = System.currentTimeMillis()
+                    Log.d(TAG, "Time taken to scan and transfer to flutter side: ${overAllTime - start}ms")
                     Log.d(TAG, "Successfully sent codes to Flutter")
                 }.onFailure { error ->
                     Log.e(TAG, "Error sending codes to Flutter", error)
