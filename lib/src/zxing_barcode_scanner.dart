@@ -9,14 +9,16 @@ const _viewType = 'com.shirisharyal.zxing_barcode_scanner';
 class ZxingBarcodeScanner extends StatefulWidget {
   const ZxingBarcodeScanner({
     super.key,
-    required this.onScan,
-    required this.onError,
     this.config = const ScannerConfig(),
+    required this.onError,
+    required this.onScan,
+    this.overlay,
   });
 
   final void Function(List<BarcodeResult> results) onScan;
   final Widget Function(ZxingBarcodeScannerException error) onError;
   final ScannerConfig config;
+  final Widget? overlay;
 
   @override
   State<ZxingBarcodeScanner> createState() => _ZxingBarcodeScannerState();
@@ -38,7 +40,7 @@ class _ZxingBarcodeScannerState extends State<ZxingBarcodeScanner> implements Zx
     }
 
     final creationParams = widget.config.toMap();
-    return switch (defaultTargetPlatform) {
+    final child = switch (defaultTargetPlatform) {
       TargetPlatform.android => AndroidView(
           viewType: _viewType,
           layoutDirection: TextDirection.ltr,
@@ -53,6 +55,13 @@ class _ZxingBarcodeScannerState extends State<ZxingBarcodeScanner> implements Zx
         ),
       _ => throw UnimplementedError(),
     };
+    if (widget.overlay == null) return child;
+    return Stack(
+      children: [
+        child,
+        widget.overlay!,
+      ],
+    );
   }
 
   @override

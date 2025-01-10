@@ -34,6 +34,15 @@ class _ScannerPageState extends State<ScannerPage> {
           onError: (error) => Center(
             child: Text(error.message ?? ''),
           ),
+          overlay: Center(
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.red, width: 2),
+              ),
+            ),
+          ),
           onScan: (results) async {
             if (_isProcessingQR) return;
             _isProcessingQR = true;

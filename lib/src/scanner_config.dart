@@ -36,7 +36,7 @@ class ZxingOptions {
     this.downscaleFactor = 3,
     this.downscaleThreshold = 500,
     this.tryCode39ExtendedMode = false,
-    this.binarizer = Binarizer.localAverage,
+    this.binarizer = Binarizer.globalHistogram,
   });
 
   /// If true, the scanner will attempt to rotate the image in 90° increments to find a barcode.
