@@ -6,15 +6,21 @@ import 'package:zxing_barcode_scanner/generated/zxing_barcode_scanner_api.g.dart
 const _viewType = 'com.shirisharyal.zxing_barcode_scanner';
 
 class ZxingBarcodeScanner extends StatefulWidget {
-  const ZxingBarcodeScanner({super.key, required this.onScan});
+  const ZxingBarcodeScanner({
+    super.key,
+    required this.onScan,
+    required this.onError,
+  });
 
   final void Function(List<BarcodeResult> results) onScan;
+  final Widget Function(ZxingBarcodeScannerException error) onError;
 
   @override
   State<ZxingBarcodeScanner> createState() => _ZxingBarcodeScannerState();
 }
 
 class _ZxingBarcodeScannerState extends State<ZxingBarcodeScanner> implements ZxingBarcodeScannerFlutterApi {
+  ZxingBarcodeScannerException? _error;
   // TODO: Implement the barcode scanner creation parameters
   final _creationParams = <String, dynamic>{};
 
@@ -26,6 +32,9 @@ class _ZxingBarcodeScannerState extends State<ZxingBarcodeScanner> implements Zx
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null) {
+      return widget.onError(_error!);
+    }
     return switch (defaultTargetPlatform) {
       TargetPlatform.android => AndroidView(
           viewType: _viewType,
@@ -44,5 +53,13 @@ class _ZxingBarcodeScannerState extends State<ZxingBarcodeScanner> implements Zx
   }
 
   @override
-  void onScanSuccess(List<BarcodeResult> results) => widget.onScan(results);
+  void onScanSuccess(List<BarcodeResult> results) {
+    widget.onScan(results);
+  }
+
+  @override
+  void onError(ZxingBarcodeScannerException? error) {
+    _error = error;
+    setState(() {});
+  }
 }
