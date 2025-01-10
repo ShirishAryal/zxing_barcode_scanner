@@ -5,7 +5,6 @@ import ZxingBarcodeScannerController
 import ZxingBarcodeScannerException
 import ZxingBarcodeScannerFlutterApi
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
@@ -123,9 +122,6 @@ class ScannerView(
                 setupBarcodeReader()
                 setupImageAnalysis()
                 cameraExecutor = Executors.newSingleThreadExecutor()
-                imageAnalysisBuilder?.setAnalyzer(cameraExecutor!!) {
-                    scanBarcodes(it)
-                }
                 try {
                     cameraProvider?.apply {
                         unbindAll()
@@ -137,6 +133,10 @@ class ScannerView(
                             previewUseCase,
                             imageAnalysisBuilder
                         )
+                    }
+
+                    imageAnalysisBuilder?.setAnalyzer(cameraExecutor!!) {
+                        scanBarcodes(it)
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
