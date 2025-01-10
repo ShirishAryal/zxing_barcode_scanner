@@ -36,7 +36,8 @@ class ScannerView(
     private val context: Context,
     private val activity: Activity,
     private val activityPluginBinding: ActivityPluginBinding,
-    private val flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
+    private val flutterPluginBinding: FlutterPlugin.FlutterPluginBinding,
+    private val scannerConfig: ScannerConfig
 ) : PlatformView, PluginRegistry.RequestPermissionsResultListener, ZxingBarcodeScannerController {
 
     private var camera: androidx.camera.core.Camera? = null
@@ -161,15 +162,14 @@ class ScannerView(
     private fun setupBarcodeReader() {
       val options = BarcodeReader.Options().apply {
             formats = setOf(BarcodeReader.Format.QR_CODE)
-            tryRotate = false
-            tryInvert = true
-            tryHarder = true
-            tryDownscale = false
-            maxNumberOfSymbols = 1
-            binarizer = BarcodeReader.Binarizer.LOCAL_AVERAGE
+            tryInvert = scannerConfig.zxingOptions.tryInvert
+            tryHarder = scannerConfig.zxingOptions.tryHarder
+            tryDownscale = scannerConfig.zxingOptions.tryDownscale
+            maxNumberOfSymbols = scannerConfig.zxingOptions.maxNumberOfSymbols
+            binarizer = scannerConfig.zxingOptions.binarizer
             // Need more testing either enabling [tryRotate] flag
             // or enabling rotation on imageAnalysisBuilder is more effective
-            tryRotate = false
+            tryRotate = scannerConfig.zxingOptions.tryRotate
         }
       barcodeReader = BarcodeReader(options)
     }

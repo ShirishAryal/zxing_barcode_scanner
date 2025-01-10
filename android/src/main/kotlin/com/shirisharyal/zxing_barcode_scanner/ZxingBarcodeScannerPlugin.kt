@@ -56,7 +56,8 @@ class ZxingBarcodeScannerViewFactory(
       context =context,
       activity = activity,
       activityPluginBinding = activityPluginBinding,
-      flutterPluginBinding = flutterPluginBinding
+      flutterPluginBinding = flutterPluginBinding,
+      scannerConfig =  ScannerConfig.fromMap(args as Map<String, Any>)
     )
   }
 }
