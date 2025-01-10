@@ -68,12 +68,41 @@ data class BarcodeResult (
     )
   }
 }
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class ZxingBarcodeScannerException (
+  val tag: String? = null,
+  val message: String? = null,
+  val detail: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): ZxingBarcodeScannerException {
+      val tag = pigeonVar_list[0] as String?
+      val message = pigeonVar_list[1] as String?
+      val detail = pigeonVar_list[2] as String?
+      return ZxingBarcodeScannerException(tag, message, detail)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      tag,
+      message,
+      detail,
+    )
+  }
+}
 private open class ZxingBarcodeScannerPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
       129.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           BarcodeResult.fromList(it)
+        }
+      }
+      130.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          ZxingBarcodeScannerException.fromList(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
@@ -83,6 +112,10 @@ private open class ZxingBarcodeScannerPigeonCodec : StandardMessageCodec() {
     when (value) {
       is BarcodeResult -> {
         stream.write(129)
+        writeValue(stream, value.toList())
+      }
+      is ZxingBarcodeScannerException -> {
+        stream.write(130)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -104,6 +137,23 @@ class ZxingBarcodeScannerFlutterApi(private val binaryMessenger: BinaryMessenger
     val channelName = "dev.flutter.pigeon.zxing_barcode_scanner.ZxingBarcodeScannerFlutterApi.onScanSuccess$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(resultsArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(ZxingBarcodeScannerError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(createConnectionError(channelName)))
+      } 
+    }
+  }
+  fun onError(errorArg: ZxingBarcodeScannerException?, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.zxing_barcode_scanner.ZxingBarcodeScannerFlutterApi.onError$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(errorArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(ZxingBarcodeScannerError(it[0] as String, it[1] as String, it[2] as String?)))

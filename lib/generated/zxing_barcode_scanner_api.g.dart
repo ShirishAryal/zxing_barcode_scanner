@@ -51,6 +51,37 @@ class BarcodeResult {
   }
 }
 
+class ZxingBarcodeScannerException {
+  ZxingBarcodeScannerException({
+    this.tag,
+    this.message,
+    this.detail,
+  });
+
+  String? tag;
+
+  String? message;
+
+  String? detail;
+
+  Object encode() {
+    return <Object?>[
+      tag,
+      message,
+      detail,
+    ];
+  }
+
+  static ZxingBarcodeScannerException decode(Object result) {
+    result as List<Object?>;
+    return ZxingBarcodeScannerException(
+      tag: result[0] as String?,
+      message: result[1] as String?,
+      detail: result[2] as String?,
+    );
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -62,6 +93,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is BarcodeResult) {
       buffer.putUint8(129);
       writeValue(buffer, value.encode());
+    }    else if (value is ZxingBarcodeScannerException) {
+      buffer.putUint8(130);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -72,6 +106,8 @@ class _PigeonCodec extends StandardMessageCodec {
     switch (type) {
       case 129: 
         return BarcodeResult.decode(readValue(buffer)!);
+      case 130: 
+        return ZxingBarcodeScannerException.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -82,6 +118,8 @@ abstract class ZxingBarcodeScannerFlutterApi {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
   void onScanSuccess(List<BarcodeResult> results);
+
+  void onError(ZxingBarcodeScannerException? error);
 
   static void setUp(ZxingBarcodeScannerFlutterApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
@@ -101,6 +139,29 @@ abstract class ZxingBarcodeScannerFlutterApi {
               'Argument for dev.flutter.pigeon.zxing_barcode_scanner.ZxingBarcodeScannerFlutterApi.onScanSuccess was null, expected non-null List<BarcodeResult>.');
           try {
             api.onScanSuccess(arg_results!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.zxing_barcode_scanner.ZxingBarcodeScannerFlutterApi.onError$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.zxing_barcode_scanner.ZxingBarcodeScannerFlutterApi.onError was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final ZxingBarcodeScannerException? arg_error = (args[0] as ZxingBarcodeScannerException?);
+          try {
+            api.onError(arg_error);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

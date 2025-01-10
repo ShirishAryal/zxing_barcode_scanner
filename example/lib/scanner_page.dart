@@ -31,6 +31,9 @@ class _ScannerPageState extends State<ScannerPage> {
       appBar: AppBar(),
       body: Center(
         child: ZxingBarcodeScanner(
+          onError: (error) => Center(
+            child: Text(error.message ?? ''),
+          ),
           onScan: (results) async {
             if (_isProcessingQR) return;
             _isProcessingQR = true;

@@ -10,14 +10,10 @@ import 'package:pigeon/pigeon.dart';
     kotlinOptions: KotlinOptions(errorClassName: 'ZxingBarcodeScannerError'),
   ),
 )
-class BarcodeResult {
-  String? text;
-  String? format;
-}
-
 @FlutterApi()
 abstract class ZxingBarcodeScannerFlutterApi {
   void onScanSuccess(List<BarcodeResult> results);
+  void onError(ZxingBarcodeScannerException? error);
 }
 
 @HostApi()
@@ -26,4 +22,15 @@ abstract class ZxingBarcodeScannerController {
   void start();
   void stop();
   void dispose();
+}
+
+class BarcodeResult {
+  String? text;
+  String? format;
+}
+
+class ZxingBarcodeScannerException {
+  String? tag;
+  String? message;
+  String? detail;
 }

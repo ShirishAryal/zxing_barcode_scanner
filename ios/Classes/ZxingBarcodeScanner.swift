@@ -92,11 +92,41 @@ struct BarcodeResult {
   }
 }
 
+/// Generated class from Pigeon that represents data sent in messages.
+struct ZxingBarcodeScannerException {
+  var tag: String? = nil
+  var message: String? = nil
+  var detail: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> ZxingBarcodeScannerException? {
+    let tag: String? = nilOrValue(pigeonVar_list[0])
+    let message: String? = nilOrValue(pigeonVar_list[1])
+    let detail: String? = nilOrValue(pigeonVar_list[2])
+
+    return ZxingBarcodeScannerException(
+      tag: tag,
+      message: message,
+      detail: detail
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      tag,
+      message,
+      detail,
+    ]
+  }
+}
+
 private class ZxingBarcodeScannerPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
     case 129:
       return BarcodeResult.fromList(self.readValue() as! [Any?])
+    case 130:
+      return ZxingBarcodeScannerException.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -107,6 +137,9 @@ private class ZxingBarcodeScannerPigeonCodecWriter: FlutterStandardWriter {
   override func writeValue(_ value: Any) {
     if let value = value as? BarcodeResult {
       super.writeByte(129)
+      super.writeValue(value.toList())
+    } else if let value = value as? ZxingBarcodeScannerException {
+      super.writeByte(130)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -131,6 +164,7 @@ class ZxingBarcodeScannerPigeonCodec: FlutterStandardMessageCodec, @unchecked Se
 /// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
 protocol ZxingBarcodeScannerFlutterApiProtocol {
   func onScanSuccess(results resultsArg: [BarcodeResult], completion: @escaping (Result<Void, ZxingBarcodeScannerError>) -> Void)
+  func onError(error errorArg: ZxingBarcodeScannerException?, completion: @escaping (Result<Void, ZxingBarcodeScannerError>) -> Void)
 }
 class ZxingBarcodeScannerFlutterApi: ZxingBarcodeScannerFlutterApiProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -146,6 +180,24 @@ class ZxingBarcodeScannerFlutterApi: ZxingBarcodeScannerFlutterApiProtocol {
     let channelName: String = "dev.flutter.pigeon.zxing_barcode_scanner.ZxingBarcodeScannerFlutterApi.onScanSuccess\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([resultsArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(ZxingBarcodeScannerError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(Void()))
+      }
+    }
+  }
+  func onError(error errorArg: ZxingBarcodeScannerException?, completion: @escaping (Result<Void, ZxingBarcodeScannerError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.zxing_barcode_scanner.ZxingBarcodeScannerFlutterApi.onError\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([errorArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

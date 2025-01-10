@@ -2,21 +2,16 @@ package com.shirisharyal.zxing_barcode_scanner
 
 import BarcodeResult
 import ZxingBarcodeScannerController
+import ZxingBarcodeScannerException
 import ZxingBarcodeScannerFlutterApi
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Color
-import android.os.Build
 import android.util.Log
 import android.util.Size
-import android.view.Gravity
+import android.view.Surface
 import android.view.View
-import android.widget.FrameLayout
-import android.widget.TextView
-import androidx.annotation.RequiresApi
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -47,7 +42,7 @@ class ScannerView(
     private var camera: androidx.camera.core.Camera? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalysisBuilder: ImageAnalysis? = null
-    private var  barcodeReader: BarcodeReader? = null
+    private var barcodeReader: BarcodeReader? = null
     private var cameraExecutor: ExecutorService? = null
     private var isFlashOn = false
     private var zxingBarcodeScannerFlutterApi: ZxingBarcodeScannerFlutterApi = ZxingBarcodeScannerFlutterApi(flutterPluginBinding.binaryMessenger)
@@ -71,33 +66,18 @@ class ScannerView(
         ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
     }
 
-    private val container = FrameLayout(context).apply {
-        layoutParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            FrameLayout.LayoutParams.MATCH_PARENT
-        )
-    }
-
-    @SuppressLint("SetTextI18n")
-    private val messageView = TextView(context).apply {
-        text = "Couldn't initialize camera"
-        gravity = Gravity.CENTER
-        textSize = 20f
-    }
-
     private val preview = PreviewView(context).apply {
         scaleType = PreviewView.ScaleType.FIT_CENTER
         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
     }
 
-    override fun getView(): View = container
+    override fun getView(): View = preview
 
     init {
         ZxingBarcodeScannerController.setUp(flutterPluginBinding.binaryMessenger, this)
         activityPluginBinding.addRequestPermissionsResultListener(this)
-        container.setBackgroundColor(Color.WHITE)
+
         if(allPermissionsGranted()){
-            container.addView(preview)
             startCamera()
         }
         else {
@@ -114,25 +94,16 @@ class ScannerView(
         permissions: Array<out String?>,
         grantResults: IntArray
     ): Boolean {
-
-        if (requestCode == com.shirisharyal.zxing_barcode_scanner.ScannerView.Companion.REQUEST_CODE_PERMISSIONS) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted - show camera
-                container.removeView(messageView)
-                if (preview.parent == null) {
-                    container.addView(preview)
-                }
-                startCamera()
-            } else {
-                // Permission denied - show error message
-                container.removeView(preview)
-                if (messageView.parent == null) {
-                    container.addView(messageView)
-                }
-            }
-            return true
+        if (requestCode != REQUEST_CODE_PERMISSIONS) return false
+        if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startCamera()
+        } else {
+            zxingBarcodeScannerFlutterApi.onError(ZxingBarcodeScannerException(
+                tag = "PERMISSION_DENIED",
+                message = "Camera permission denied",
+                detail = "Camera permission denied permanently")){}
         }
-        return false
+        return true
     }
 
     private fun startCamera() {
@@ -151,9 +122,6 @@ class ScannerView(
                 setupBarcodeReader()
                 setupImageAnalysis()
                 cameraExecutor = Executors.newSingleThreadExecutor()
-                imageAnalysisBuilder?.setAnalyzer(cameraExecutor!!) {
-                    scanBarcodes(it)
-                }
                 try {
                     cameraProvider?.apply {
                         unbindAll()
@@ -165,6 +133,10 @@ class ScannerView(
                             previewUseCase,
                             imageAnalysisBuilder
                         )
+                    }
+
+                    imageAnalysisBuilder?.setAnalyzer(cameraExecutor!!) {
+                        scanBarcodes(it)
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -181,6 +153,7 @@ class ScannerView(
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_BLOCK_PRODUCER)
             .setImageQueueDepth(4)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+            .setTargetRotation(Surface.ROTATION_0)
             .build()
 
     }
@@ -188,6 +161,7 @@ class ScannerView(
     private fun setupBarcodeReader() {
       val options = BarcodeReader.Options().apply {
             formats = setOf(BarcodeReader.Format.QR_CODE)
+            tryRotate = false
             tryInvert = true
             tryHarder = true
             tryDownscale = false
@@ -228,7 +202,7 @@ class ScannerView(
     }
 
     override fun toggleFlash(): Boolean {
-        val hasFlash = camera?.cameraInfo?.hasFlashUnit() ?: false
+        val hasFlash = camera?.cameraInfo?.hasFlashUnit() == true
         if (!hasFlash) return  false
        camera?.cameraControl?.enableTorch(!isFlashOn)
         isFlashOn = !isFlashOn
@@ -237,14 +211,14 @@ class ScannerView(
 
     override fun start() {
         if(cameraProvider == null) return
-        cameraProvider!!.unbindAll()
+        cameraProvider?.unbindAll()
         val previewUseCase = Preview.Builder()
             .setResolutionSelector(resolutionSelector.build())
             .build()
             .also {
                 it.surfaceProvider = preview.surfaceProvider
             }
-        camera = cameraProvider!!.bindToLifecycle(
+        camera = cameraProvider?.bindToLifecycle(
             activity as LifecycleOwner,
             CameraSelector.Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK)
