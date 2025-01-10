@@ -8,6 +8,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Rect
 import android.util.Log
 import android.util.Size
 import android.view.Surface
@@ -176,6 +177,20 @@ class ScannerView(
 
     private fun scanBarcodes(imageProxy: ImageProxy) {
         val start = System.currentTimeMillis()
+
+        // This is experimental and may not work as expected
+        if(scannerConfig.ignoreEdges){
+            // Calculate margins proportionally
+            val leftRightMargin = imageProxy.width * 0.10  // 10% margin from sides
+            val topBottomMargin = imageProxy.height * 0.20 // 20% margin from top/bottom
+            imageProxy.setCropRect(Rect(
+                leftRightMargin.toInt(), // left
+                topBottomMargin.toInt(), // top
+                (imageProxy.width - leftRightMargin).toInt(), // right
+                (imageProxy.height - topBottomMargin).toInt() // bottom
+            ))
+        }
+
         val results = barcodeReader?.read(imageProxy)
         imageProxy.close()
         if(results.isNullOrEmpty()) return

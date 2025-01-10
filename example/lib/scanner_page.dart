@@ -27,19 +27,28 @@ class _ScannerPageState extends State<ScannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(),
       body: Center(
         child: ZxingBarcodeScanner(
           onError: (error) => Center(
             child: Text(error.message ?? ''),
           ),
+          config: const ScannerConfig(
+            resolution: Resolution.hd720p,
+            zxingOptions: ZxingOptions(
+              tryRotate: true,
+              tryInvert: true,
+              tryHarder: true,
+              tryDownscale: false,
+              binarizer: Binarizer.localAverage,
+            ),
+          ),
           overlay: Center(
             child: Container(
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.red, width: 2),
+                border: Border.all(color: Colors.blue, width: 1),
               ),
             ),
           ),
