@@ -1,15 +1,140 @@
-# zxing_barcode_scanner
+# ZXing Barcode Scanner
 
-A new Flutter plugin project.
+A Flutter plugin that implements barcode scanning using ZXing-cpp on both Android and iOS platform, providing robust and efficient barcode detection. This package is designed to address the limitations of MLKit barcode scanning, particularly for high-density QR codes and challenging lighting conditions, while eliminating the dependency on Google Play Services.
 
-## Getting Started
+## Installation
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/to/develop-plugins),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
+```yaml
+dependencies:
+  zxing_barcode_scanner: ^1.0.0
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Android
 
+```
+minSdkVersion 21
+```
+
+### iOS
+
+```
+<key>NSCameraUsageDescription</key>
+<string>This app requires access to your camera scanning barcodes</string>
+```
+
+## Basic Usage
+
+```dart
+import 'package:zxing_barcode_scanner/zxing_barcode_scanner.dart';
+
+class ScannerPage extends StatefulWidget {
+  const ScannerPage({super.key});
+
+  @override
+  State<ScannerPage> createState() => _ScannerPageState();
+}
+
+class _ScannerPageState extends State<ScannerPage> {
+  late final ZxingBarcodeScannerController _controller;
+
+  @override
+  void initState() {
+    _controller = ZxingBarcodeScannerController();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Center(
+        child: ZxingBarcodeScanner(
+          onError: (error) => Center(
+            child: Text(error.message ?? ''),
+          ),
+          config: const ScannerConfig(
+            resolution: Resolution.hd720p,
+            zxingOptions: ZxingOptions(
+              tryRotate: true,
+              tryInvert: true,
+              tryHarder: true,
+              tryDownscale: false,
+              binarizer: Binarizer.localAverage,
+            ),
+          ),
+          onScan: (results) async {
+            for(result in results){
+                print(result.text??'')
+            }
+          },
+        ),
+      ),
+    );
+  }
+}
+```
+
+```dart
+// Start scanner
+await _controller.start()
+
+// Stop scanner
+await _controller.stop()
+```
+
+## Advanced Configuration
+
+### Resolution Options
+
+```dart
+Resolution.sd480p    // 640x480
+Resolution.hd720p    // 1280x720
+Resolution.hd1080p   // 1920x1080
+```
+
+### Binarizer Methods
+
+```dart
+Binarizer.localAverage     // Best for varying lighting
+Binarizer.globalHistogram  // Fast and balanced
+Binarizer.fixedThreshold   // Fast, needs good lighting
+Binarizer.boolCast        // Fastest, ideal conditions only
+```
+
+### Performance Optimization
+
+```dart
+ZxingOptions(
+  tryDownscale: true,
+  downscaleFactor: 3,
+  downscaleThreshold: 500,
+  tryHarder: false,
+  maxNumberOfSymbols: 1,
+)
+```
+
+## Performance Tips
+
+1. **Choose the Right Resolution**: Higher isn't always better
+2. **Select Appropriate Binarizer**: Match to your use case
+3. **Enable Downscaling**: For better performance on high-res images
+4. **Optimize Options**: Adjust based on your specific needs
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting PRs.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Based on the [ZXing-cpp](https://github.com/nu-book/zxing-cpp) library
+- Inspired by the need for a reliable, platform-independent barcode scanner
