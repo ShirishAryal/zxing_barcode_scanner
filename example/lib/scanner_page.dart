@@ -27,7 +27,12 @@ class _ScannerPageState extends State<ScannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      extendBody: true,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+      ),
       body: Center(
         child: ZxingBarcodeScanner(
           onError: (error) => Center(
@@ -43,14 +48,41 @@ class _ScannerPageState extends State<ScannerPage> {
               binarizer: Binarizer.localAverage,
             ),
           ),
-          overlay: Center(
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue, width: 1),
+          overlay: Stack(
+            children: [
+              Center(
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.blue, width: 1),
+                  ),
+                ),
               ),
-            ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () async => _controller.start(),
+                        child: Text('Start'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async => _controller.stop(),
+                        child: Text('Stop'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () async => _controller.toggleFlash(),
+                        child: Text('Toogle Flash'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            ],
           ),
           onScan: (results) async {
             if (_isProcessingQR) return;
