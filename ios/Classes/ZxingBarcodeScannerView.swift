@@ -24,8 +24,8 @@ class ZxingBarcodeScannerView: UIViewController, ZxingBarcodeScannerController{
          args: Any?,
          binaryMessenger: FlutterBinaryMessenger) {
         self.flutterApi = ZxingBarcodeScannerFlutterApi(binaryMessenger: binaryMessenger)
-        ZxingBarcodeScannerControllerSetup.setUp(binaryMessenger: self.binaryMessenger, api: self)
         super.init(nibName: nil, bundle: nil)
+        ZxingBarcodeScannerControllerSetup.setUp(binaryMessenger: binaryMessenger, api: self)
     }
     
     required init?(coder: NSCoder) {
@@ -54,7 +54,12 @@ extension ZxingBarcodeScannerView: AVCaptureVideoDataOutputSampleBufferDelegate 
         case .authorized:
             setupCameraSession()
         default:
-            // Handle denied/restricted access
+                flutterApi.onError(error: ZxingBarcodeScannerException(
+                    tag: "Permission_Denied",
+                    message: "Camera Permission Denied",
+                    detail: "Make sure to provide camera premission in your app settings"),
+                    completion: {result in}
+                )
             break
         }
     }
@@ -124,19 +129,39 @@ extension ZxingBarcodeScannerView: AVCaptureVideoDataOutputSampleBufferDelegate 
     }
 }
 
-
 extension ZxingBarcodeScannerView{
     func start() throws {
-        print("start")
+        if(captureSession.isRunning) {return}
+        queue.async {
+            self.captureSession.startRunning()
+        }
     }
+    
     func stop() throws {
-        print("stop")
+        if(!captureSession.isRunning) {return}
+        queue.async {
+            self.captureSession.stopRunning()
+        }
     }
+    
     func toggleFlash() throws -> Bool{
-        print("toogleTorch")
-        return false
+        if(!captureSession.isRunning) {return false}
+        
+        let device = getBestCamera()
+        if(!(device?.hasTorch ?? false)){
+            print("Flash not supported")
+            return false
+        }
+        try device?.lockForConfiguration()
+        device?.torchMode = (device?.torchMode == .on) ? .off : .on
+        device?.unlockForConfiguration()
+        return (device?.torchMode ?? .off) == .on
     }
+    
     func dispose() throws {
-        print("dispose")
+        if(!captureSession.isRunning) {return}
+        queue.async {
+            self.captureSession.stopRunning()
+        }
     }
 }
