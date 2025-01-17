@@ -7,7 +7,7 @@ class ZxingBarcodeScannerView: UIViewController, ZxingBarcodeScannerController{
     private let flutterApi: ZxingBarcodeScannerFlutterApi
     private lazy var captureSession: AVCaptureSession = {
         let session = AVCaptureSession()
-        session.sessionPreset = .hd1920x1080
+        session.sessionPreset = .hd1280x720
         return session
     }()
     
@@ -69,6 +69,7 @@ extension ZxingBarcodeScannerView: AVCaptureVideoDataOutputSampleBufferDelegate 
             guard let self = self else { return }
             self.configureCameraInput()
             self.configureVideoOutput()
+            self.configureMetadataOutput()
             self.captureSession.startRunning()
         }
     }
@@ -103,6 +104,8 @@ extension ZxingBarcodeScannerView: AVCaptureVideoDataOutputSampleBufferDelegate 
         captureSession.commitConfiguration()
     }
     
+
+    
     private func getBestCamera() -> AVCaptureDevice? {
         let discoverySession = AVCaptureDevice.DiscoverySession(
             deviceTypes: getAvailableCameraTypes(),
@@ -126,6 +129,42 @@ extension ZxingBarcodeScannerView: AVCaptureVideoDataOutputSampleBufferDelegate 
                 .builtInWideAngleCamera
             ]
         }
+    }
+}
+
+extension ZxingBarcodeScannerView: AVCaptureMetadataOutputObjectsDelegate{
+    private func configureMetadataOutput() {
+        let metadataOutput = AVCaptureMetadataOutput()
+        if captureSession.canAddOutput(metadataOutput) {
+            captureSession.addOutput(metadataOutput)
+            // Set the delegate to handle metadata detection (QR Code).
+            metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+            metadataOutput.metadataObjectTypes = [.qr]
+            let scanningArea = CGRect(
+                x: (UIScreen.main.bounds.width - 300) / 2,
+                y: (UIScreen.main.bounds.height - 300) / 2,
+                width: 300,
+                height: 300)
+            metadataOutput.rectOfInterest = CGRect(
+                x: scanningArea.origin.y / UIScreen.main.bounds.height,
+                y: scanningArea.origin.x / UIScreen.main.bounds.width,
+                width: scanningArea.height / UIScreen.main.bounds.height,
+                height: scanningArea.width / UIScreen.main.bounds.width)
+        }
+    }
+    
+    func metadataOutput(
+        _ output: AVCaptureMetadataOutput,
+        didOutput metadataObjects: [AVMetadataObject],
+        from connection: AVCaptureConnection
+    ) {
+        if(metadataObjects.isEmpty){return}
+        var scanResults: [BarcodeResult] = []
+        for metadataObject in metadataObjects {
+            let result = metadataObject as? AVMetadataMachineReadableCodeObject
+            scanResults.append(BarcodeResult(text: result?.stringValue, format: result?.type.rawValue))
+        }
+        flutterApi.onScanSuccess(results: scanResults, completion:{result in })
     }
 }
 
