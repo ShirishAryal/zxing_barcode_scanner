@@ -36,6 +36,29 @@ enum Resolution {
   final int value;
 }
 
+enum BarcodeFormat {
+  aztec(1),
+  codabar(2),
+  code39(3),
+  code93(4),
+  code128(5),
+  dataBar(6),
+  dataBarExpanded(7),
+  dataMatrix(8),
+  ean8(9),
+  ean13(10),
+  itf(11),
+  pdf417(13),
+  qrCode(14),
+  microQrCode(15),
+  rmQrCode(16),
+  upcA(17),
+  upcE(18);
+
+  const BarcodeFormat(this.value);
+  final int value;
+}
+
 class ZxingOptions {
   const ZxingOptions({
     this.tryRotate = false,
@@ -47,6 +70,7 @@ class ZxingOptions {
     this.downscaleThreshold = 500,
     this.tryCode39ExtendedMode = false,
     this.binarizer = Binarizer.globalHistogram,
+    this.formats = const <BarcodeFormat>{BarcodeFormat.qrCode},
   });
 
   /// If true, the scanner will attempt to rotate the image in 90° increments to find a barcode.
@@ -121,6 +145,11 @@ class ZxingOptions {
   /// See [Binarizer] enum for detailed information about each method.
   final Binarizer binarizer;
 
+  /// The barcode formats to scan for.
+  ///
+  /// If empty, the scanner will scan for all supported formats.
+  final Set<BarcodeFormat> formats;
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'tryRotate': tryRotate,
@@ -132,6 +161,7 @@ class ZxingOptions {
       'downscaleThreshold': downscaleThreshold,
       'tryCode39ExtendedMode': tryCode39ExtendedMode,
       'binarizer': binarizer.value,
+      'formats': formats.map((format) => format.value).toList(),
     };
   }
 }
