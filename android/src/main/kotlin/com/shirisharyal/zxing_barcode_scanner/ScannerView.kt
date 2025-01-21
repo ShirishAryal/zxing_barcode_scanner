@@ -157,12 +157,11 @@ class ScannerView(
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
             .setTargetRotation(Surface.ROTATION_0)
             .build()
-
     }
 
     private fun setupBarcodeReader() {
       val options = BarcodeReader.Options().apply {
-            formats = setOf(BarcodeReader.Format.QR_CODE)
+            formats = scannerConfig.zxingOptions.formats
             tryInvert = scannerConfig.zxingOptions.tryInvert
             tryHarder = scannerConfig.zxingOptions.tryHarder
             tryDownscale = scannerConfig.zxingOptions.tryDownscale
