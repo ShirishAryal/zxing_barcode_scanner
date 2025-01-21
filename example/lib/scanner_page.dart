@@ -46,6 +46,7 @@ class _ScannerPageState extends State<ScannerPage> {
               tryHarder: true,
               tryDownscale: false,
               binarizer: Binarizer.localAverage,
+              formats: {BarcodeFormat.qrCode, BarcodeFormat.aztec},
             ),
           ),
           overlay: Stack(
