@@ -7,7 +7,7 @@ class ZxingBarcodeScannerView: UIViewController, ZxingBarcodeScannerController{
     private let flutterApi: ZxingBarcodeScannerFlutterApi
     private lazy var captureSession: AVCaptureSession = {
         let session = AVCaptureSession()
-        session.sessionPreset = .hd1280x720
+        session.sessionPreset = .hd1920x1080
         return session
     }()
     
@@ -38,10 +38,19 @@ class ZxingBarcodeScannerView: UIViewController, ZxingBarcodeScannerController{
         requestCameraAccess()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        self.preview.frame = self.view.bounds
+        self.view.layer.addSublayer(self.preview)
+    }
+    
+
+    
     private func setupPreviewLayer() {
         preview.frame = view.layer.bounds
         view.layer.addSublayer(preview)
     }
+    
 }
 
 extension ZxingBarcodeScannerView: AVCaptureVideoDataOutputSampleBufferDelegate {

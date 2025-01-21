@@ -18,6 +18,7 @@ class ZxingBarcodeScannerFactory: NSObject, FlutterPlatformViewFactory {
     }
     
     func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> any FlutterPlatformView {
+        
         return ZxingBarcodeScannerPlatformView(frame: frame, viewId: viewId, args: args, binaryMessenger: messenger)
     }
     
