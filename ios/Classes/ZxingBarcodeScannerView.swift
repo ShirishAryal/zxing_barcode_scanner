@@ -81,11 +81,13 @@ class ZxingBarcodeScannerView: UIViewController, ZxingBarcodeScannerController {
     }
     
     private func handleCameraPermissionDenied() {
-        flutterApi.onError(error: ZxingBarcodeScannerException(
-            tag: "Permission_Denied",
-            message: "Camera Permission Denied",
-            detail: "Make sure to provide camera permission in your app settings"
-        ), completion: { _ in })
+        DispatchQueue.main.async {
+            self.flutterApi.onError(error: ZxingBarcodeScannerException(
+                tag: "Permission_Denied",
+                message: "Camera Permission Denied",
+                detail: "Make sure to provide camera permission in your app settings"
+            ), completion: { _ in })
+        }
     }
     
     private func setupCameraSession() {
@@ -99,11 +101,13 @@ class ZxingBarcodeScannerView: UIViewController, ZxingBarcodeScannerController {
     
     private func configureCameraInput() {
         guard let device = getBestCamera() else {
-            flutterApi.onError(error: ZxingBarcodeScannerException(
-                tag: "CAMERA_NOT_FOUND",
-                message: "Could not find a camera",
-                detail: "Make sure your device has a camera"
-            ), completion: { _ in })
+            DispatchQueue.main.async {
+                self.flutterApi.onError(error: ZxingBarcodeScannerException(
+                    tag: "CAMERA_NOT_FOUND",
+                    message: "Could not find a camera",
+                    detail: "Make sure your device has a camera"
+                ), completion: { _ in })
+            }
             return
         }
         
