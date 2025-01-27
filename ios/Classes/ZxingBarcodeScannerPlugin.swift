@@ -18,8 +18,8 @@ class ZxingBarcodeScannerFactory: NSObject, FlutterPlatformViewFactory {
     }
     
     func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> any FlutterPlatformView {
-        
-        return ZxingBarcodeScannerPlatformView(frame: frame, viewId: viewId, args: args, binaryMessenger: messenger)
+        let config: ScannerConfig = ScannerConfig(fromMap: args as! [String: Any])
+        return ZxingBarcodeScannerPlatformView(frame: frame, viewId: viewId, config: config, binaryMessenger: messenger)
     }
     
     public func createArgsCodec() -> any FlutterMessageCodec & NSObjectProtocol {
@@ -33,10 +33,10 @@ class ZxingBarcodeScannerPlatformView: NSObject, FlutterPlatformView {
     init(
         frame: CGRect,
         viewId: Int64,
-        args: Any?,
+        config: ScannerConfig,
         binaryMessenger: FlutterBinaryMessenger
     ) {
-        scannerView = ZxingBarcodeScannerView(frame: frame, viewId: viewId, args: args, binaryMessenger: binaryMessenger)
+        scannerView = ZxingBarcodeScannerView(frame: frame, viewId: viewId, config: config, binaryMessenger: binaryMessenger)
         scannerView.view.frame = frame
         super.init()
     }
@@ -44,5 +44,6 @@ class ZxingBarcodeScannerPlatformView: NSObject, FlutterPlatformView {
     func view() -> UIView {
         return scannerView.view
     }
-
 }
+
+
