@@ -1,3 +1,3 @@
-## 0.0.1
+## 1.0.0
 
-* TODO: Describe initial release.
+* Initial release with native ZXing-cpp barcode scanning implementation for Android and iOS, including configurable scanning options
