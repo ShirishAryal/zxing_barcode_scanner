@@ -1,3 +1,3 @@
 ## 1.0.0
 
-* Initial release with native ZXing-cpp barcode scanning implementation for Android and iOS, including configurable scanning options
+* Initial release of ZXing Barcode Scanner with support for both Android and iOS platforms.

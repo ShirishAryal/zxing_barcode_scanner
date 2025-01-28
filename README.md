@@ -1,6 +1,6 @@
 # ZXing Barcode Scanner
 
-A Flutter plugin that implements barcode scanning using ZXing-cpp on both Android and iOS platform, providing robust and efficient barcode detection. This package is designed to address the limitations of MLKit barcode scanning, particularly for high-density QR codes and challenging lighting conditions, while eliminating the dependency on Google Play Services.
+A Flutter plugin that implements barcode scanning using [ZXing-cpp](https://github.com/zxing-cpp/zxing-cpp) on both Android and iOS platforms. While iOS's AVFoundation offers good scanning performance, it can struggle with densely printed QR codes or those with uneven print quality. This plugin is created to address these limitations as well as those of MLKit barcode scanning, particularly for high-density QR codes and challenging lighting conditions, while eliminating the dependency on Google Play Services.
 
 ## Installation
 
