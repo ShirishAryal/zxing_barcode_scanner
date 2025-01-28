@@ -171,8 +171,7 @@ extension ZxingBarcodeScannerView: AVCaptureVideoDataOutputSampleBufferDelegate 
             return // Drop frame if the previous one is still being processed
         }
         
-        defer { zxingLock.signal() } // Release the lock after processing
-        
+        defer { zxingLock.signal() } // Release the lock after
         guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
         processingQueue.async { [weak self] in
