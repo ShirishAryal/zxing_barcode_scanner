@@ -6,8 +6,8 @@ import ZXingCpp
 class ZxingBarcodeScannerView: UIViewController, ZxingBarcodeScannerController {
     private let flutterApi: ZxingBarcodeScannerFlutterApi
     private let captureSession: AVCaptureSession
-    private let processingQueue = DispatchQueue(label: "com.zxing_cpp.ios.processing", qos: .userInitiated)
-    private let cameraQueue = DispatchQueue(label: "com.zxing_cpp.ios.camera", qos: .userInitiated)
+    private let processingQueue = DispatchQueue(label: "com.zxing_barcode_scanner.ios.processing", qos: .userInitiated)
+    private let cameraQueue = DispatchQueue(label: "com.zxing_barcode_scanner.ios.camera", qos: .userInitiated)
     private let reader: ZXIBarcodeReader
     private let zxingLock = DispatchSemaphore(value: 1)
     
@@ -56,6 +56,12 @@ class ZxingBarcodeScannerView: UIViewController, ZxingBarcodeScannerController {
         super.viewWillAppear(animated)
         preview.frame = view.bounds
         view.layer.addSublayer(preview)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        self.captureSession.stopRunning()
+        self.preview.removeFromSuperlayer()
     }
     
     private func setupPreviewLayer() {
@@ -116,8 +122,11 @@ class ZxingBarcodeScannerView: UIViewController, ZxingBarcodeScannerController {
             captureSession.beginConfiguration()
             if captureSession.canAddInput(cameraInput) {
                 captureSession.addInput(cameraInput)
+                captureSession.commitConfiguration()
+            } else {
+                captureSession.commitConfiguration()
+                print("Failed to add camera input")
             }
-            captureSession.commitConfiguration()
         } catch {
             print("Error setting up camera input: \(error)")
             captureSession.commitConfiguration()
@@ -174,14 +183,11 @@ extension ZxingBarcodeScannerView: AVCaptureVideoDataOutputSampleBufferDelegate 
         defer { zxingLock.signal() } // Release the lock after
         guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
-        processingQueue.async { [weak self] in
-            guard let self = self else { return }
-            if let results = try? self.reader.read(imageBuffer), !results.isEmpty {
-                let scanResults = results.map { BarcodeResult(text: $0.text, format: self.getFormat(val: $0.format.rawValue)) }
-                
-                DispatchQueue.main.async {
-                    self.flutterApi.onScanSuccess(results: scanResults) { _ in }
-                }
+        if let results = try? self.reader.read(imageBuffer), !results.isEmpty {
+            let scanResults = results.map { BarcodeResult(text: $0.text, format: self.getFormat(val: $0.format.rawValue)) }
+            
+            DispatchQueue.main.async {
+                self.flutterApi.onScanSuccess(results: scanResults) { _ in }
             }
         }
     }
@@ -231,8 +237,13 @@ extension ZxingBarcodeScannerView {
         }
         
         try device.lockForConfiguration()
-        device.torchMode = device.torchMode == .on ? .off : .on
-        device.unlockForConfiguration()
+        defer { device.unlockForConfiguration() }
+        if device.isTorchModeSupported(.on) {
+            device.torchMode = device.torchMode == .on ? .off : .on
+            return device.torchMode == .on
+        } else {
+            print("Torch mode not supported")
+        }
         return device.torchMode == .on
     }
     
@@ -240,6 +251,12 @@ extension ZxingBarcodeScannerView {
         if !captureSession.isRunning { return }
         cameraQueue.async {
             self.captureSession.stopRunning()
+            self.captureSession.inputs.forEach { input in
+                self.captureSession.removeInput(input)
+            }
+            self.captureSession.outputs.forEach { output in
+                self.captureSession.removeOutput(output)
+            }
         }
     }
 }
