@@ -1,7 +1,6 @@
 class ScannerConfig {
   const ScannerConfig({
     this.resolution = Resolution.hd720p,
-    this.ignoreEdges = true,
     this.zxingOptions = const ZxingOptions(),
   });
 
@@ -10,19 +9,10 @@ class ScannerConfig {
 
   final ZxingOptions zxingOptions;
 
-  // TODO(Shirish): Remove [ignoreEdges] in favor of scaning certain area of the image
-
-  /// If true, the scanner will ignore the edges of the image when processing.
-  ///
-  /// Removing the edges can help improve the scan time
-  ///
-  final bool ignoreEdges;
-
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'resolution': resolution.value,
       'zxingOptions': zxingOptions.toMap(),
-      'ignoreEdges': ignoreEdges,
     };
   }
 }

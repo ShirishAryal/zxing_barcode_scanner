@@ -1,11 +1,11 @@
 name: zxing_barcode_scanner
-description: "A barcode scanner plugin for Flutter using ZXing-C++ on Android and iOS."
-version: 0.0.1
+description: 'A barcode scanner plugin for Flutter using ZXing-C++ on Android and iOS.'
+version: 1.0.0
 homepage:
 
 environment:
   sdk: ^3.6.0
-  flutter: ">=3.3.0"
+  flutter: '>=3.3.0'
 
 dependencies:
   flutter:

@@ -8,7 +8,6 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Rect
 import android.util.Log
 import android.util.Size
 import android.view.Surface
@@ -48,6 +47,11 @@ class ScannerView(
     private var cameraExecutor: ExecutorService? = null
     private var isFlashOn = false
     private var zxingBarcodeScannerFlutterApi: ZxingBarcodeScannerFlutterApi = ZxingBarcodeScannerFlutterApi(flutterPluginBinding.binaryMessenger)
+    private val cameraSelector: CameraSelector by lazy {
+        CameraSelector.Builder()
+            .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+            .build()
+    }
 
     companion object {
         private const val REQUEST_CODE_PERMISSIONS = 10
@@ -69,7 +73,7 @@ class ScannerView(
     }
 
     private val preview = PreviewView(context).apply {
-        scaleType = PreviewView.ScaleType.FIT_CENTER
+        scaleType = PreviewView.ScaleType.FILL_CENTER
         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
     }
 
@@ -109,18 +113,28 @@ class ScannerView(
     }
 
     private fun startCamera() {
+        if (!context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+            Log.e("ScannerView", "No camera available on this device")
+            zxingBarcodeScannerFlutterApi.onError(
+                ZxingBarcodeScannerException(
+                    tag = "CAMERA_ERROR",
+                    message = "No camera available on this device"
+                )
+            ) {}
+            return
+        }
+
         ProcessCameraProvider.getInstance(context).apply {
             addListener({
                 cameraProvider = get()
+                if(!hasCamera()) return@addListener
                 cameraProvider?.unbindAll()
-
                 val previewUseCase = Preview.Builder()
                     .setResolutionSelector(resolutionSelector.build())
                     .build()
                     .also {
                         it.surfaceProvider = preview.surfaceProvider
                     }
-
                 setupBarcodeReader()
                 setupImageAnalysis()
                 cameraExecutor = Executors.newSingleThreadExecutor()
@@ -129,14 +143,11 @@ class ScannerView(
                         unbindAll()
                         camera = bindToLifecycle(
                             activity as LifecycleOwner,
-                            CameraSelector.Builder()
-                                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-                                .build(),
+                            cameraSelector,
                             previewUseCase,
                             imageAnalysisBuilder
                         )
                     }
-
                     imageAnalysisBuilder?.setAnalyzer(cameraExecutor!!) {
                         scanBarcodes(it)
                     }
@@ -175,39 +186,18 @@ class ScannerView(
     }
 
     private fun scanBarcodes(imageProxy: ImageProxy) {
-        val start = System.currentTimeMillis()
-
-        // This is experimental and may not work as expected
-        if(scannerConfig.ignoreEdges){
-            // Calculate margins proportionally
-            val leftRightMargin = imageProxy.width * 0.10  // 10% margin from sides
-            val topBottomMargin = imageProxy.height * 0.20 // 20% margin from top/bottom
-            imageProxy.setCropRect(Rect(
-                leftRightMargin.toInt(), // left
-                topBottomMargin.toInt(), // top
-                (imageProxy.width - leftRightMargin).toInt(), // right
-                (imageProxy.height - topBottomMargin).toInt() // bottom
-            ))
-        }
-
         val results = barcodeReader?.read(imageProxy)
         imageProxy.close()
         if(results.isNullOrEmpty()) return
-        val end = System.currentTimeMillis()
-        Log.d(TAG, "Time taken to scan: ${end - start}ms")
         val barcodeResults : MutableList<BarcodeResult> = emptyList<BarcodeResult>().toMutableList()
         for (result in results) {
             if(result.text.isNullOrEmpty()) return
-            Log.d(TAG, "Barcode: ${result.text}")
             barcodeResults.add(BarcodeResult(result.text!!, format = result.format.name))
         }
         if(barcodeResults.isEmpty()) return
         activity.runOnUiThread {
             zxingBarcodeScannerFlutterApi.onScanSuccess(barcodeResults){
                 it.onSuccess {
-                    val overAllTime = System.currentTimeMillis()
-                    Log.d(TAG, "Time taken to scan and transfer to flutter side: ${overAllTime - start}ms")
-                    Log.d(TAG, "Successfully sent codes to Flutter")
                 }.onFailure { error ->
                     Log.e(TAG, "Error sending codes to Flutter", error)
                 }
@@ -256,5 +246,29 @@ class ScannerView(
         cameraProvider = null
         camera = null
         preview.removeAllViews()
+    }
+
+    private fun hasCamera(): Boolean {
+        try {
+            val hasCamera = cameraProvider?.hasCamera(cameraSelector)
+            if (hasCamera == true) return true
+            zxingBarcodeScannerFlutterApi.onError(
+                ZxingBarcodeScannerException(
+                    tag = "CAMERA_ERROR",
+                    message = "Camera not available",
+                    detail = "Camera not available"
+                )
+            ) {}
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking camera availability: ${e.message}")
+            zxingBarcodeScannerFlutterApi.onError(
+                ZxingBarcodeScannerException(
+                    tag = "CAMERA_ERROR",
+                    message = "Error checking camera availability",
+                    detail = e.message
+                )
+            ) {}
+        }
+        return false
     }
 }

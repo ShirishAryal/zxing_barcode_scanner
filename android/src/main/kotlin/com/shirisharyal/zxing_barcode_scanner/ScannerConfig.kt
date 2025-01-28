@@ -7,7 +7,6 @@ import zxingcpp.BarcodeReader
 data class ScannerConfig(
     val resolution: Size = Size(1280, 720),
     val zxingOptions: ZxingOptions = ZxingOptions(),
-    val ignoreEdges: Boolean = true
 ) {
     companion object {
         fun fromMap(map: Map<String, Any>): ScannerConfig {
@@ -19,7 +18,6 @@ data class ScannerConfig(
             }
             val zxingOptionsMap = map["zxingOptions"] as? Map<String, Any> ?: emptyMap()
             val zxingOptions = ZxingOptions.fromMap(zxingOptionsMap)
-            val ignoreEdges = map["ignoreEdges"] as? Boolean ?: true
             return ScannerConfig(resolution, zxingOptions)
         }
     }
@@ -33,8 +31,7 @@ data class ScannerConfig(
         }
         return mapOf(
             "resolution" to resolutionValue,
-            "zxingOptions" to zxingOptions.toMap(),
-            "ignoreEdges" to ignoreEdges
+            "zxingOptions" to zxingOptions.toMap()
         )
     }
 }
