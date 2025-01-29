@@ -61,7 +61,7 @@ class ScannerView(
         private val resolutionSelector =  ResolutionSelector.Builder().setResolutionStrategy(
             ResolutionStrategy(
                 defaultBoundSize,
-                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER
+                ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER
             )
         ) .setAspectRatioStrategy(
             AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY
