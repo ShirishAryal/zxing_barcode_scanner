@@ -60,7 +60,6 @@ class ZxingBarcodeScannerView: UIViewController, ZxingBarcodeScannerController {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        self.captureSession.stopRunning()
         self.preview.removeFromSuperlayer()
     }
     
