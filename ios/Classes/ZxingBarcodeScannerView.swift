@@ -248,17 +248,6 @@ extension ZxingBarcodeScannerView {
     }
     
     func dispose() throws {
-        // Ensure the session stops on the main queue
-        DispatchQueue.main.async {
-            self.captureSession.stopRunning()
-
-            // Remove inputs and outputs
-            self.captureSession.inputs.forEach { input in
-                self.captureSession.removeInput(input)
-            }
-            self.captureSession.outputs.forEach { output in
-                self.captureSession.removeOutput(output)
-            }
-        }
+        self.captureSession.stopRunning()
     }
 }
