@@ -2,7 +2,7 @@ group = "com.shirisharyal.zxing_barcode_scanner"
 version = "1.0-SNAPSHOT"
 
 buildscript {
-    ext.kotlin_version = "1.8.22"
+    ext.kotlin_version = "2.2.21"
     repositories {
         google()
         mavenCentral()
